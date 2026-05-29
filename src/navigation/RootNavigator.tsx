@@ -1,18 +1,20 @@
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { Text } from 'react-native';
-import { DashboardScreen } from '../screens/DashboardScreen';
-import { PlaceholderScreen } from '../screens/PlaceholderScreen';
-import { SettingsScreen } from '../screens/SettingsScreen';
+import { DashboardScreen }    from '../screens/DashboardScreen';
+import { RevenusScreen }      from '../screens/RevenusScreen';
+import { SettingsScreen }     from '../screens/SettingsScreen';
+import { SouhaitScreen }      from '../screens/SouhaitScreen';
+import { TransactionsScreen } from '../screens/TransactionsScreen';
 import { colors } from '../theme';
 
 const Tab = createBottomTabNavigator();
 
 const TABS = [
-  { name: 'Dashboard',     emoji: '🏠', component: DashboardScreen },
-  { name: 'Transactions',  emoji: '🧾', component: () => <PlaceholderScreen title="Transactions" emoji="🧾" /> },
-  { name: 'Souhaits',      emoji: '✨', component: () => <PlaceholderScreen title="Souhaits"     emoji="✨" /> },
-  { name: 'Revenus',       emoji: '💰', component: () => <PlaceholderScreen title="Revenus"      emoji="💰" /> },
-  { name: 'Réglages',      emoji: '⚙️', component: SettingsScreen },
+  { name: 'Dashboard',    emoji: '🏠', component: DashboardScreen    },
+  { name: 'Transactions', emoji: '🧾', component: TransactionsScreen  },
+  { name: 'Souhaits',     emoji: '✨', component: SouhaitScreen       },
+  { name: 'Revenus',      emoji: '💰', component: RevenusScreen       },
+  { name: 'Réglages',     emoji: '⚙️', component: SettingsScreen      },
 ] as const;
 
 export function RootNavigator() {
