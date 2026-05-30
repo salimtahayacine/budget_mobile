@@ -11,6 +11,8 @@
       "supportsTablet": true
     },
     "android": {
+      "package": "ma.budget.app",
+      "versionCode": 1,
       "adaptiveIcon": {
         "backgroundColor": "#E6F4FE",
         "foregroundImage": "./assets/android-icon-foreground.png",
@@ -24,6 +26,11 @@
     },
     "plugins": [
       "expo-web-browser"
-    ]
+    ],
+    "extra": {
+      "eas": {
+        "projectId": "1eb4c3ff-c215-47f5-8fe5-877fd2f09e05"
+      }
+    }
   }
 }
