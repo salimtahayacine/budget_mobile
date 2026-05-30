@@ -11,6 +11,7 @@ import {
   View,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
+import { ImportModal } from '../components/ImportModal';
 import { fmtDH } from '../format';
 import { useGoogleAuthRequest } from '../services/googleAuth';
 import { useStore } from '../store';
@@ -30,8 +31,9 @@ export function SettingsScreen() {
   const syncWithDrive    = useStore((s) => s.syncWithDrive);
   const clearCache       = useStore((s) => s.clearCache);
 
-  const [limitDraft,   setLimitDraft]   = useState(String(budgetLimit));
-  const [balanceDraft, setBalanceDraft] = useState(manualBalance != null ? String(manualBalance) : '');
+  const [limitDraft,    setLimitDraft]    = useState(String(budgetLimit));
+  const [balanceDraft,  setBalanceDraft]  = useState(manualBalance != null ? String(manualBalance) : '');
+  const [importVisible, setImportVisible] = useState(false);
 
   const onTokens = useCallback((t: GoogleTokens) => {
     setGoogleTokens(t);
@@ -165,12 +167,32 @@ export function SettingsScreen() {
           )}
         </Section>
 
+        {/* ── Import manuel ─────────────────────────────── */}
+        <Section title="📥 Import manuel relevé Chaabi">
+          <Text style={styles.syncDesc}>
+            Sans connexion Gmail, importe ton relevé en collant le HTML de l'email Chaabi.
+            Utile en attendant de configurer l'OAuth Google.
+          </Text>
+          <Pressable
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={() => setImportVisible(true)}
+          >
+            <Text style={styles.btnPrimaryText}>📥 Importer un relevé HTML</Text>
+          </Pressable>
+        </Section>
+
         {/* ── Cache ──────────────────────────────────────── */}
         <Section title="Cache Chaabi">
           <Text style={styles.syncDesc}>
             Les transactions Chaabi sont mises en cache depuis le dernier email Gmail.
-            Vider le cache force une nouvelle synchronisation.
+            Importe un nouveau relevé ou vide le cache pour forcer une resynchronisation.
           </Text>
+          <Pressable
+            style={[styles.btn, styles.btnPrimary]}
+            onPress={() => setImportVisible(true)}
+          >
+            <Text style={styles.btnPrimaryText}>📥 Importer un relevé HTML</Text>
+          </Pressable>
           <Pressable style={[styles.btn, styles.btnDanger]} onPress={handleClearCache}>
             <Text style={styles.btnDangerText}>🗑️ Vider le cache Chaabi</Text>
           </Pressable>
@@ -192,6 +214,8 @@ export function SettingsScreen() {
           </View>
         </Section>
       </ScrollView>
+
+      <ImportModal visible={importVisible} onClose={() => setImportVisible(false)} />
     </SafeAreaView>
   );
 }

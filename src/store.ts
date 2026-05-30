@@ -117,20 +117,24 @@ interface BudgetState {
 
   // Transactions
   addManualTx:    (t: Omit<Transaction, 'id' | 'source'>) => void;
+  updateManualTx: (id: number, updates: Partial<Omit<Transaction, 'id' | 'source'>>) => void;
   deleteManualTx: (id: number) => void;
 
   // Revenues
   addRevenue:    (r: Omit<ManualRevenue, 'id'>) => void;
+  updateRevenue: (id: number, updates: Partial<Omit<ManualRevenue, 'id'>>) => void;
   deleteRevenue: (id: number) => void;
 
   // Wishes
   addWish:    (w: Omit<WishItem, 'id' | 'done' | 'convertedDate'>) => void;
+  updateWish: (id: number, updates: Partial<Omit<WishItem, 'id'>>) => void;
   deleteWish: (id: number) => void;
   toggleWish: (id: number) => void;
 
   // Chaabi sync (mock → real OAuth plus tard)
   refreshChaabi: () => Promise<void>;
   clearCache:    () => Promise<void>;
+  importChaabi:  (txs: Transaction[], balance: number | null, balanceDate: string) => Promise<void>;
 }
 
 // ─── Store ────────────────────────────────────────────────────────────────
@@ -286,6 +290,12 @@ export const useStore = create<BudgetState>((set, get) => ({
     setJSON(K.manual, next);
     schedulePush();
   },
+  updateManualTx: (id, updates) => {
+    const next = get().manualTxs.map((t) => t.id === id ? { ...t, ...updates } : t);
+    set({ manualTxs: next });
+    setJSON(K.manual, next);
+    schedulePush();
+  },
   deleteManualTx: (id) => {
     const next = get().manualTxs.filter((t) => t.id !== id);
     set({ manualTxs: next });
@@ -301,6 +311,12 @@ export const useStore = create<BudgetState>((set, get) => ({
     setJSON(K.revs, next);
     schedulePush();
   },
+  updateRevenue: (id, updates) => {
+    const next = get().manualRevs.map((r) => r.id === id ? { ...r, ...updates } : r);
+    set({ manualRevs: next });
+    setJSON(K.revs, next);
+    schedulePush();
+  },
   deleteRevenue: (id) => {
     const next = get().manualRevs.filter((r) => r.id !== id);
     set({ manualRevs: next });
@@ -312,6 +328,12 @@ export const useStore = create<BudgetState>((set, get) => ({
   addWish: (w) => {
     const wish: WishItem = { ...w, id: Date.now(), done: false, convertedDate: null };
     const next = [...get().wishes, wish];
+    set({ wishes: next });
+    setJSON(K.wishes, next);
+    schedulePush();
+  },
+  updateWish: (id, updates) => {
+    const next = get().wishes.map((w) => w.id === id ? { ...w, ...updates } : w);
     set({ wishes: next });
     setJSON(K.wishes, next);
     schedulePush();
@@ -361,6 +383,22 @@ export const useStore = create<BudgetState>((set, get) => ({
   clearCache: async () => {
     await AsyncStorage.removeItem(K.cache);
     set({ cache: null });
+  },
+  // ── Import manuel HTML ────────────────────────────────────────────────
+  importChaabi: async (txs, balance, balanceDate) => {
+    const fresh: CachedChaabi = {
+      txs,
+      balance:     balance ?? get().cache?.balance ?? null,
+      balanceDate: balanceDate || get().cache?.balanceDate || '',
+      calEvents:   get().cache?.calEvents ?? [],
+      timestamp:   liveTimestamp(),
+    };
+    set({ cache: fresh });
+    await setJSON(K.cache, fresh);
+    if (balance != null && get().manualBalance == null) {
+      get().setManualBalance(balance);
+    }
+    schedulePush();
   },
 }));
 

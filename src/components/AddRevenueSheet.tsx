@@ -1,35 +1,57 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import { Pressable, ScrollView, StyleSheet, Text, TextInput, View } from 'react-native';
 import { todayDMY } from '../format';
 import { useStore } from '../store';
 import { colors, radius, spacing } from '../theme';
+import { ManualRevenue } from '../types';
 import { BottomSheet } from './BottomSheet';
 
 interface Props {
-  visible: boolean;
-  onClose: () => void;
+  visible:       boolean;
+  onClose:       () => void;
+  editingRev?:   ManualRevenue; // mode édition si fourni
 }
 
-export function AddRevenueSheet({ visible, onClose }: Props) {
-  const addRevenue = useStore((s) => s.addRevenue);
+export function AddRevenueSheet({ visible, onClose, editingRev }: Props) {
+  const addRevenue    = useStore((s) => s.addRevenue);
+  const updateRevenue = useStore((s) => s.updateRevenue);
+
+  const isEditing = !!editingRev;
 
   const [lib,     setLib]     = useState('');
   const [date,    setDate]    = useState(todayDMY());
   const [montant, setMontant] = useState('');
+
+  // Pré-remplissage en mode édition
+  useEffect(() => {
+    if (visible && editingRev) {
+      setLib(editingRev.lib);
+      setDate(editingRev.date);
+      setMontant(String(editingRev.amount));
+    } else if (visible && !editingRev) {
+      setLib(''); setDate(todayDMY()); setMontant('');
+    }
+  }, [visible, editingRev]);
 
   const reset = () => { setLib(''); setDate(todayDMY()); setMontant(''); };
 
   const save = () => {
     const amt = parseFloat(montant.replace(',', '.'));
     if (!lib.trim() || isNaN(amt) || amt <= 0) return;
-    addRevenue({ lib: lib.trim(), date, amount: amt });
+    if (isEditing && editingRev) {
+      updateRevenue(editingRev.id, { lib: lib.trim(), date, amount: amt });
+    } else {
+      addRevenue({ lib: lib.trim(), date, amount: amt });
+    }
     reset();
     onClose();
   };
 
   return (
     <BottomSheet visible={visible} onClose={() => { reset(); onClose(); }}>
-      <Text style={styles.title}>💰 Nouveau revenu</Text>
+      <Text style={styles.title}>
+        {isEditing ? '✏️ Modifier le revenu' : '💰 Nouveau revenu'}
+      </Text>
 
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         <Field label="Libellé *">
@@ -39,7 +61,7 @@ export function AddRevenueSheet({ visible, onClose }: Props) {
             onChangeText={setLib}
             placeholder="Ex: Salaire, Freelance, Loyer reçu…"
             placeholderTextColor={colors.textSecondary}
-            autoFocus
+            autoFocus={!isEditing}
           />
         </Field>
 
@@ -66,7 +88,9 @@ export function AddRevenueSheet({ visible, onClose }: Props) {
         </Field>
 
         <Pressable style={styles.saveBtn} onPress={save}>
-          <Text style={styles.saveBtnText}>💾 Enregistrer le revenu</Text>
+          <Text style={styles.saveBtnText}>
+            {isEditing ? '✏️ Enregistrer les modifications' : '💾 Enregistrer le revenu'}
+          </Text>
         </Pressable>
       </ScrollView>
     </BottomSheet>

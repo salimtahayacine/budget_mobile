@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 import {
   Pressable,
   ScrollView,
@@ -9,12 +9,13 @@ import {
 } from 'react-native';
 import { useStore } from '../store';
 import { colors, radius, spacing } from '../theme';
-import { Priority } from '../types';
+import { Priority, WishItem } from '../types';
 import { BottomSheet } from './BottomSheet';
 
 interface Props {
-  visible: boolean;
-  onClose: () => void;
+  visible:      boolean;
+  onClose:      () => void;
+  editingWish?: WishItem; // mode édition si fourni
 }
 
 const PRIOS: { key: Priority; label: string; color: string }[] = [
@@ -23,27 +24,48 @@ const PRIOS: { key: Priority; label: string; color: string }[] = [
   { key: 'envie',  label: '🟢 Simple envie', color: colors.income   },
 ];
 
-export function AddWishSheet({ visible, onClose }: Props) {
-  const addWish = useStore((s) => s.addWish);
+export function AddWishSheet({ visible, onClose, editingWish }: Props) {
+  const addWish    = useStore((s) => s.addWish);
+  const updateWish = useStore((s) => s.updateWish);
 
-  const [name,   setName]   = useState('');
-  const [price,  setPrice]  = useState('');
-  const [prio,   setPrio]   = useState<Priority>('normal');
-  const [note,   setNote]   = useState('');
+  const isEditing = !!editingWish;
+
+  const [name,  setName]  = useState('');
+  const [price, setPrice] = useState('');
+  const [prio,  setPrio]  = useState<Priority>('normal');
+  const [note,  setNote]  = useState('');
+
+  // Pré-remplissage en mode édition
+  useEffect(() => {
+    if (visible && editingWish) {
+      setName(editingWish.name);
+      setPrice(String(editingWish.price));
+      setPrio(editingWish.prio);
+      setNote(editingWish.note ?? '');
+    } else if (visible && !editingWish) {
+      setName(''); setPrice(''); setPrio('normal'); setNote('');
+    }
+  }, [visible, editingWish]);
 
   const reset = () => { setName(''); setPrice(''); setPrio('normal'); setNote(''); };
 
   const save = () => {
     const amt = parseFloat(price.replace(',', '.'));
     if (!name.trim() || isNaN(amt) || amt <= 0) return;
-    addWish({ name: name.trim(), price: amt, prio, note: note.trim() });
+    if (isEditing && editingWish) {
+      updateWish(editingWish.id, { name: name.trim(), price: amt, prio, note: note.trim() });
+    } else {
+      addWish({ name: name.trim(), price: amt, prio, note: note.trim() });
+    }
     reset();
     onClose();
   };
 
   return (
     <BottomSheet visible={visible} onClose={() => { reset(); onClose(); }}>
-      <Text style={styles.title}>✨ Nouveau souhait</Text>
+      <Text style={styles.title}>
+        {isEditing ? '✏️ Modifier le souhait' : '✨ Nouveau souhait'}
+      </Text>
 
       <ScrollView contentContainerStyle={styles.form} keyboardShouldPersistTaps="handled">
         <Field label="Article *">
@@ -53,7 +75,7 @@ export function AddWishSheet({ visible, onClose }: Props) {
             onChangeText={setName}
             placeholder="Ex: AirPods Pro, Voyage Marrakech…"
             placeholderTextColor={colors.textSecondary}
-            autoFocus
+            autoFocus={!isEditing}
           />
         </Field>
 
@@ -101,7 +123,9 @@ export function AddWishSheet({ visible, onClose }: Props) {
         </Field>
 
         <Pressable style={styles.saveBtn} onPress={save}>
-          <Text style={styles.saveBtnText}>💾 Enregistrer le souhait</Text>
+          <Text style={styles.saveBtnText}>
+            {isEditing ? '✏️ Enregistrer les modifications' : '💾 Enregistrer le souhait'}
+          </Text>
         </Pressable>
       </ScrollView>
     </BottomSheet>
@@ -132,8 +156,8 @@ const styles = StyleSheet.create({
     paddingHorizontal: 12,
     paddingVertical: 10,
   },
-  textarea: { minHeight: 80, textAlignVertical: 'top' },
-  prioRow: { flexDirection: 'row', gap: 8 },
+  textarea:    { minHeight: 80, textAlignVertical: 'top' },
+  prioRow:     { flexDirection: 'row', gap: 8 },
   prioBtn: {
     flex: 1,
     paddingVertical: 8,

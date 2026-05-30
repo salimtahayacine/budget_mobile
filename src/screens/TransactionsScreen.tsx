@@ -1,11 +1,5 @@
 import { useState } from 'react';
-import {
-  FlatList,
-  Pressable,
-  StyleSheet,
-  Text,
-  View,
-} from 'react-native';
+import { FlatList, Pressable, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AddTransactionSheet } from '../components/AddTransactionSheet';
 import { FAB } from '../components/FAB';
@@ -28,7 +22,7 @@ const TABS: { key: Tab; label: string }[] = [
 function filterTxs(txs: Transaction[], tab: Tab): Transaction[] {
   switch (tab) {
     case 'chaabi':    return txs.filter((t) => t.source === 'chaabi');
-    case 'depenses':  return txs.filter((t) => t.debit > 0);
+    case 'depenses':  return txs.filter((t) => t.debit  > 0);
     case 'revenus':   return txs.filter((t) => t.credit > 0);
     case 'manuelles': return txs.filter((t) => t.source === 'manual');
     default:          return txs;
@@ -46,13 +40,23 @@ function sortTxs(txs: Transaction[]): Transaction[] {
 }
 
 export function TransactionsScreen() {
-  const [activeTab, setActiveTab] = useState<Tab>('toutes');
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [activeTab,  setActiveTab]  = useState<Tab>('toutes');
+  const [sheetOpen,  setSheetOpen]  = useState(false);
+  const [editingTx,  setEditingTx]  = useState<Transaction | undefined>();
 
   const allTxs      = useStore(selectMonthTxs);
   const deleteManTx = useStore((s) => s.deleteManualTx);
 
   const filtered = sortTxs(filterTxs(allTxs, activeTab));
+
+  const openEdit = (tx: Transaction) => {
+    setEditingTx(tx);
+    setSheetOpen(true);
+  };
+  const closeSheet = () => {
+    setSheetOpen(false);
+    setEditingTx(undefined);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -65,7 +69,7 @@ export function TransactionsScreen() {
       {/* Tab bar */}
       <View style={styles.tabRow}>
         {TABS.map((tab) => {
-          const count = filterTxs(allTxs, tab.key).length;
+          const count  = filterTxs(allTxs, tab.key).length;
           const active = activeTab === tab.key;
           return (
             <Pressable
@@ -86,7 +90,6 @@ export function TransactionsScreen() {
         })}
       </View>
 
-      {/* List */}
       <FlatList
         data={filtered}
         keyExtractor={(t) => String(t.id)}
@@ -94,6 +97,7 @@ export function TransactionsScreen() {
           <TransactionRow
             tx={item}
             onDelete={item.source === 'manual' ? deleteManTx : undefined}
+            onEdit={item.source === 'manual' ? openEdit : undefined}
           />
         )}
         ListEmptyComponent={<Empty />}
@@ -101,11 +105,12 @@ export function TransactionsScreen() {
         showsVerticalScrollIndicator={false}
       />
 
-      <FAB onPress={() => setSheetOpen(true)} color={colors.primary} />
+      <FAB onPress={() => { setEditingTx(undefined); setSheetOpen(true); }} color={colors.primary} />
 
       <AddTransactionSheet
         visible={sheetOpen}
-        onClose={() => setSheetOpen(false)}
+        onClose={closeSheet}
+        editingTx={editingTx}
       />
     </SafeAreaView>
   );
@@ -133,31 +138,18 @@ const styles = StyleSheet.create({
     paddingHorizontal: 8,
   },
   tab: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: 10,
-    paddingVertical: 10,
-    gap: 5,
+    flexDirection: 'row', alignItems: 'center',
+    paddingHorizontal: 10, paddingVertical: 10, gap: 5,
   },
-  tabActive: {
-    borderBottomWidth: 2,
-    borderBottomColor: colors.primary,
-  },
-  tabText: { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
-  tabTextActive: { color: colors.primaryLight },
-  badge: {
-    backgroundColor: colors.surfaceSubtle,
-    borderRadius: 999,
-    paddingHorizontal: 5,
-    paddingVertical: 1,
-    minWidth: 18,
-    alignItems: 'center',
-  },
-  badgeActive: { backgroundColor: 'rgba(124,111,255,0.25)' },
-  badgeText: { color: colors.textSecondary, fontSize: 10, fontWeight: '700' },
+  tabActive: { borderBottomWidth: 2, borderBottomColor: colors.primary },
+  tabText:        { color: colors.textSecondary, fontSize: 12, fontWeight: '600' },
+  tabTextActive:  { color: colors.primaryLight },
+  badge:          { backgroundColor: colors.surfaceSubtle, borderRadius: 999, paddingHorizontal: 5, paddingVertical: 1, minWidth: 18, alignItems: 'center' },
+  badgeActive:    { backgroundColor: 'rgba(124,111,255,0.25)' },
+  badgeText:      { color: colors.textSecondary, fontSize: 10, fontWeight: '700' },
 
   emptyContainer: { flex: 1 },
-  empty: { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
-  emptyIcon: { fontSize: 48, marginBottom: 12 },
-  emptyText: { color: colors.textSecondary, fontSize: 15, textAlign: 'center' },
+  empty:          { flex: 1, alignItems: 'center', justifyContent: 'center', padding: 40 },
+  emptyIcon:      { fontSize: 48, marginBottom: 12 },
+  emptyText:      { color: colors.textSecondary, fontSize: 15, textAlign: 'center' },
 });

@@ -7,11 +7,12 @@ import { colors, font, radius } from '../theme';
 import { Transaction } from '../types';
 
 interface Props {
-  tx: Transaction;
+  tx:        Transaction;
   onDelete?: (id: number) => void;
+  onEdit?:   (tx: Transaction) => void;
 }
 
-export function TransactionRow({ tx, onDelete }: Props) {
+export function TransactionRow({ tx, onDelete, onEdit }: Props) {
   const swipeRef = useRef<Swipeable>(null);
   const { label, color } = categorize(tx.lib);
   const isCredit = tx.credit > 0;
@@ -19,20 +20,34 @@ export function TransactionRow({ tx, onDelete }: Props) {
   const short    = tx.lib.length > 42 ? tx.lib.slice(0, 42) + '…' : tx.lib;
 
   const renderRightActions = () => (
-    <Pressable
-      style={styles.deleteAction}
-      onPress={() => {
-        swipeRef.current?.close();
-        onDelete?.(tx.id);
-      }}
-    >
-      <Text style={styles.deleteIcon}>🗑️</Text>
-      <Text style={styles.deleteLabel}>Suppr.</Text>
-    </Pressable>
+    <View style={styles.actions}>
+      {onEdit && (
+        <Pressable
+          style={[styles.actionBtn, styles.editAction]}
+          onPress={() => { swipeRef.current?.close(); onEdit(tx); }}
+        >
+          <Text style={styles.actionIcon}>✏️</Text>
+          <Text style={styles.actionLabel}>Modifier</Text>
+        </Pressable>
+      )}
+      {onDelete && (
+        <Pressable
+          style={[styles.actionBtn, styles.deleteAction]}
+          onPress={() => { swipeRef.current?.close(); onDelete(tx.id); }}
+        >
+          <Text style={styles.actionIcon}>🗑️</Text>
+          <Text style={styles.actionLabel}>Suppr.</Text>
+        </Pressable>
+      )}
+    </View>
   );
 
   const content = (
-    <View style={[styles.row, tx.source === 'manual' && styles.manualRow]}>
+    <Pressable
+      style={[styles.row, tx.source === 'manual' && styles.manualRow]}
+      onPress={() => tx.source === 'manual' && onEdit?.(tx)}
+      disabled={tx.source !== 'manual' || !onEdit}
+    >
       <View style={[styles.dot, { backgroundColor: color }]} />
 
       <View style={styles.body}>
@@ -52,11 +67,14 @@ export function TransactionRow({ tx, onDelete }: Props) {
         <Text style={[styles.amt, isCredit ? styles.cr : styles.dr]}>
           {isCredit ? '+' : '−'}{fmtDH(amt)}
         </Text>
+        {tx.source === 'manual' && onEdit && (
+          <Text style={styles.editHint}>appui › modifier</Text>
+        )}
       </View>
-    </View>
+    </Pressable>
   );
 
-  if (tx.source === 'manual' && onDelete) {
+  if (tx.source === 'manual' && (onDelete || onEdit)) {
     return (
       <Swipeable
         ref={swipeRef}
@@ -82,40 +100,35 @@ const styles = StyleSheet.create({
     borderBottomColor: colors.border,
     gap: 10,
   },
-  manualRow: {
-    borderLeftWidth: 3,
-    borderLeftColor: colors.primary,
-  },
-  dot: {
-    width: 10,
-    height: 10,
-    borderRadius: 5,
-    flexShrink: 0,
-  },
-  body: { flex: 1 },
-  lib: { color: colors.text, fontSize: 13, fontWeight: '500' },
-  metaRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
-  catLabel: { fontSize: 11, fontWeight: '600' },
+  manualRow: { borderLeftWidth: 3, borderLeftColor: colors.primary },
+  dot:       { width: 10, height: 10, borderRadius: 5, flexShrink: 0 },
+  body:      { flex: 1 },
+  lib:       { color: colors.text, fontSize: 13, fontWeight: '500' },
+  metaRow:   { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 3 },
+  catLabel:  { fontSize: 11, fontWeight: '600' },
   tag: {
     backgroundColor: 'rgba(124,111,255,0.15)',
     borderRadius: 4,
     paddingHorizontal: 5,
     paddingVertical: 1,
   },
-  tagText: { color: colors.primaryLight, fontSize: 10, fontWeight: '700' },
-  right: { alignItems: 'flex-end', gap: 4 },
-  date: { color: colors.textSecondary, fontSize: 11 },
-  amt: { fontFamily: font.mono, fontSize: 13, fontWeight: '700' },
+  tagText:  { color: colors.primaryLight, fontSize: 10, fontWeight: '700' },
+  right:    { alignItems: 'flex-end', gap: 2 },
+  date:     { color: colors.textSecondary, fontSize: 11 },
+  amt:      { fontFamily: font.mono, fontSize: 13, fontWeight: '700' },
+  editHint: { color: colors.textSecondary, fontSize: 9, marginTop: 1 },
   cr: { color: colors.income },
   dr: { color: colors.expense },
 
-  deleteAction: {
-    backgroundColor: '#dc2626',
+  actions: { flexDirection: 'row' },
+  actionBtn: {
+    width: 68,
     justifyContent: 'center',
     alignItems: 'center',
-    width: 72,
     gap: 2,
   },
-  deleteIcon: { fontSize: 20 },
-  deleteLabel: { color: '#fff', fontSize: 10, fontWeight: '700' },
+  editAction:   { backgroundColor: '#2563eb' },
+  deleteAction: { backgroundColor: '#dc2626' },
+  actionIcon:   { fontSize: 18 },
+  actionLabel:  { color: '#fff', fontSize: 10, fontWeight: '700' },
 });

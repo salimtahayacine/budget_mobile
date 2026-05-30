@@ -13,22 +13,21 @@ const PRIO_ORDER: Record<Priority, number> = { urgent: 0, normal: 1, envie: 2 };
 
 function sortWishes(wishes: WishItem[]): WishItem[] {
   return [...wishes].sort((a, b) => {
-    // Pending before done
     if (a.done !== b.done) return a.done ? 1 : -1;
-    // Among pending: by priority
-    if (!a.done) return PRIO_ORDER[a.prio] - PRIO_ORDER[b.prio];
+    if (!a.done)           return PRIO_ORDER[a.prio] - PRIO_ORDER[b.prio];
     return 0;
   });
 }
 
 export function SouhaitScreen() {
-  const [sheetOpen, setSheetOpen] = useState(false);
+  const [sheetOpen,   setSheetOpen]   = useState(false);
+  const [editingWish, setEditingWish] = useState<WishItem | undefined>();
 
-  const wishes         = useStore((s) => s.wishes);
-  const manualBalance  = useStore((s) => s.manualBalance);
-  const toggleWish     = useStore((s) => s.toggleWish);
-  const deleteWish     = useStore((s) => s.deleteWish);
-  const wishBalance    = useStore(selectWishlistBalance);
+  const wishes        = useStore((s) => s.wishes);
+  const manualBalance = useStore((s) => s.manualBalance);
+  const toggleWish    = useStore((s) => s.toggleWish);
+  const deleteWish    = useStore((s) => s.deleteWish);
+  const wishBalance   = useStore(selectWishlistBalance);
 
   const sorted    = sortWishes(wishes);
   const pending   = wishes.filter((w) => !w.done);
@@ -36,6 +35,15 @@ export function SouhaitScreen() {
 
   const totalPending   = pending.reduce((a, w) => a + w.price, 0);
   const totalConverted = converted.reduce((a, w) => a + w.price, 0);
+
+  const openEdit = (wish: WishItem) => {
+    setEditingWish(wish);
+    setSheetOpen(true);
+  };
+  const closeSheet = () => {
+    setSheetOpen(false);
+    setEditingWish(undefined);
+  };
 
   return (
     <SafeAreaView style={styles.safe} edges={['top']}>
@@ -46,7 +54,7 @@ export function SouhaitScreen() {
       {/* Summary bar */}
       <View style={styles.summaryCard}>
         <View style={styles.summaryRow}>
-          <SumItem label="En attente"   value={fmtDH(totalPending)}   color={colors.warning}    />
+          <SumItem label="En attente"   value={fmtDH(totalPending)}   color={colors.warning} />
           <SumItem label="Convertis"    value={fmtDH(totalConverted)} color={colors.textSecondary} />
           <SumItem
             label="Solde restant"
@@ -60,16 +68,25 @@ export function SouhaitScreen() {
         data={sorted}
         keyExtractor={(w) => String(w.id)}
         renderItem={({ item }) => (
-          <WishCard wish={item} onToggle={toggleWish} onDelete={deleteWish} />
+          <WishCard
+            wish={item}
+            onToggle={toggleWish}
+            onDelete={deleteWish}
+            onEdit={openEdit}
+          />
         )}
         ListEmptyComponent={<Empty />}
         contentContainerStyle={sorted.length === 0 ? styles.emptyContainer : styles.listContent}
         showsVerticalScrollIndicator={false}
       />
 
-      <FAB onPress={() => setSheetOpen(true)} color={colors.warning} icon="+" />
+      <FAB onPress={() => { setEditingWish(undefined); setSheetOpen(true); }} color={colors.warning} />
 
-      <AddWishSheet visible={sheetOpen} onClose={() => setSheetOpen(false)} />
+      <AddWishSheet
+        visible={sheetOpen}
+        onClose={closeSheet}
+        editingWish={editingWish}
+      />
     </SafeAreaView>
   );
 }
@@ -100,8 +117,7 @@ const styles = StyleSheet.create({
 
   summaryCard: {
     backgroundColor: colors.surface,
-    borderWidth: 1,
-    borderColor: colors.border,
+    borderWidth: 1, borderColor: colors.border,
     borderRadius: radius.card,
     marginHorizontal: spacing.page,
     marginBottom: 12,
